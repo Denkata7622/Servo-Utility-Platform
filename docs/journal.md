@@ -126,6 +126,13 @@ What I learned today:
 - Using a linear-based acceleration system brings 80% of the enjoyment with 20% of the work, but adding a slight boost at the end of the function (like 1/16 * x^2) makes the joystick feel more smooth.
 - Lowering the whole function using a negative x^0 is a good idea since it gives the start of the joystick smaller velocity for small rotations 
 
+Session Time today:
+
+- ~3 hours (Recorded with Hackatime)
+- - ~120 min working on the code and fixing bugs
+- - ~45 minutes writing docs
+- - ~15 minutes searching for the Youtube videos' links and polishing the journal
+
 Notes: 
 
 - While trying to come up with some cool text-based emoji i found this chubby guy **:I**
