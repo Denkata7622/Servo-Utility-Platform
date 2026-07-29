@@ -136,3 +136,9 @@ Session Time today:
 Notes: 
 
 - While trying to come up with some cool text-based emoji i found this chubby guy **:I**
+
+## Random Event
+
+- Rolled 784,858,176 on Stardance RNG
+- Ranked #2 at the time
+- Sadly not the NASA ticket, but still a ridiculous roll :D

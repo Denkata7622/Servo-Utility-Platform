@@ -40,7 +40,7 @@ The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for bot
 
 - [x] Project planning
 - [x] Repository setup
-- [ ] Basic servo control
+- [x] Basic servo control
 - [ ] OLED interface
 - [ ] Menu system
 - [ ] Calibration
