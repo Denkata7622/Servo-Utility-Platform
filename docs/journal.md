@@ -165,9 +165,9 @@ These include:
 ### TODO:
  - [ ] Add a speed, distance and click state in the debug menu
  - [ ] Add a working settings menu
- - [ ] Add a way to take the calibrated lists and make new angle maps for the servo
- - [ ] Use calibrated servo angle maps for any movement
- - [ ] Make menu options longer than 1 row (char count depends on screen but for my 128x64 it's 20) start a scroll so u can see the whole name (right now it just trims them...)
+ - [x] Add a way to take the calibrated lists and make new angle maps for the servo
+ - [x] Use calibrated servo angle maps for any movement
+ - [x] Make menu options longer than 1 row (char count depends on screen but for my 128x64 it's 20) start a scroll so u can see the whole name (right now it just trims them...)
 
 ### Session time
 
@@ -178,3 +178,29 @@ These include:
 - Gotta talk with the admin when I am ready to ship the project, so he gives me the stardust (actually there was recently a change in the way hours get saved and we had like 2 weeks to transfer out work from hackatime to the new platform, but i accidentally transferred all work at once and got over the 10 hour cap limit...)
 
 - I wrote this as a form of redemption so i don't feel as guilty for the big time hole in the journal :D
+
+## 13th August - 1st September (Again, a long time)
+
+### Again, I missed a lot of time in journaling, sorry about that, but this time I worked most of the days I could. Lost a week in time, cuz I was on a vacation, but I'm back now :D
+
+### Main events
+
+- Basically finished almost all TODOs from the last log except the settings menu - haven't even started that one yet... and some additional debug functions which may prove useful later.
+
+- - Added Calibration Lists (So now you can torture multiple servos to extract their calibration data XD).
+
+- - Added Working customScroll funtion for when options are longer than max chars per line (it looks cool <3).
+
+- Added Custom Commands like `/n` to prettyPrint which directly end the current line and start a new one (Not Tested)
+
+- Lots of bug hunting, debugging and UI Polish + Code Sanitazing (idk if that's how it's called XD)
+
+### TODO
+
+- [ ] Actually TEST the calibration workflow and check if it really works with a real servo
+- [ ] Add an X-axis animation to the Settings menu when changing variables
+- [ ] Add a way to name list slots
+- [ ] Make list slots dynamically generated instead of hardcoded
+- - [ ] Add an "add/make new slot" option
+
+- [ ] Make an on-screen keyboard or use a library
