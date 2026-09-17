@@ -31,6 +31,11 @@ int selectedDelayMs = 200;
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 bool debug = false;
 
+// $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+// Calibration Option (Change to enable joystick)
+// $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+bool joystickjCalibrate = true;
+
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Reset Settings/Profiles (Change to turn NVS on / off)
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -179,10 +184,18 @@ bool simulateError106 = false;
 // [1] = 180° servo
 // ########################
 
-
+// ID of the current User Profile
 // Uses 0 for Basic, 1 for accurate, 2 for servophile (3 for super servophile)
 int usedCalibrationList = 4;
 int usedCalibrationListSlot = 0;
+
+// Actual pointer reaching the profile address
+// Initialize empty pointers so we don't declare and lose them in functions  
+double* pickedAngleList = nullptr;
+double* referenceAngleList = nullptr;
+
+// Distance, Picked and Reference Lists all have the same size
+int ListSize = 0;
 
 // [usedCalibrationProfile] can be found at the bottom of the variable setup (around line ~300)
 
@@ -1534,7 +1547,8 @@ void manualControl()
       angle = fixServoAngle(angle);
 
       // calibrate angle before sending it to Servo.write()
-      calibratedAngle = digitalAngleToCalibrated(angle, SavedAnglesMEGAServophileLength, SavedAnglesMEGAServophile[usedCalibrationListSlot], SavedAnglesMEGAServophileReference);
+      // uses global variables so it can handle profile change
+      calibratedAngle = digitalAngleToCalibrated(angle, ListSize, pickedAngleList, referenceAngleList);
       
       TestServo.write(calibratedAngle);
     }
@@ -1855,83 +1869,13 @@ void laserCalibration()
     // Go back
     return;
   }
-
-  int ListID = usedCalibrationList;
   
   // [SLOT] Picker
   // updates usedCalibrationListSlot
   callPickCalibrationListSlot();
-  int slot = usedCalibrationListSlot;
 
-  // Distance, Picked and Reference Lists all have the same size
-  int ListSize = 0;
-
-  // Initialize empty pointers so we don't declare and lose them in the switch() { case: }  
-  double* pickedAngleList = nullptr;
-  double* referenceAngleList = nullptr;
-
-  // Check if the User wants to force Error 106
-  if (simulateError106)
-  {
-    // Force Error 106: Non-Existing Servo Profile
-    ListID = 100;
-  }
-
-  // Pick servo profile based on the selected one
-  switch (ListID)
-  {
-    case 0:
-    {
-      ListSize = SavedAnglesBasicLength;
-      pickedAngleList = &SavedAnglesBasic[slot][0]; // Call [0] to get the array address
-      referenceAngleList = &SavedAnglesBasicReference[servoType][0];
-      break;      
-    }
-
-    case 1:
-    {
-      ListSize = SavedAnglesAccurateLength;
-      pickedAngleList = &SavedAnglesAccurate[slot][0];
-      referenceAngleList = &SavedAnglesAccurateReference[servoType][0];
-      break;
-    }
-
-    case 2:
-    {
-      ListSize = SavedAnglesServophileLength;
-      pickedAngleList = &SavedAnglesServophile[slot][0];
-      referenceAngleList = &SavedAnglesServophileReference[servoType][0];
-      break;
-    }
-
-    case 3:
-    {
-      ListSize = SavedAnglesSuperServophileLength;
-      pickedAngleList = &SavedAnglesSuperServophile[slot][0];
-      referenceAngleList = &SavedAnglesSuperServophileReference[servoType][0];
-      break;
-    }
-
-    case 4:
-    {
-      ListSize = SavedAnglesMEGAServophileLength;
-      pickedAngleList = &SavedAnglesMEGAServophile[slot][0];
-      referenceAngleList = &SavedAnglesMEGAServophileReference[servoType][0];
-      break;
-    }
-
-    case 5:
-    {
-      ListSize = SavedAnglesOVERKILLServophileLength;
-      pickedAngleList = &SavedAnglesOVERKILLServophile[slot][0];
-      referenceAngleList = &SavedAnglesOVERKILLServophileReference[servoType][0];
-      break;
-    }
-
-    default:
-      showErrorMessage(106, "Non-Existing Servo Profile");
-      break;
-  }
+  // Use information to update the chosen profile
+  updateSelectedProfile();
   
   // Saved Servo Variables
   double startingDistance = 0;
@@ -2185,7 +2129,7 @@ void joystickCalibration()
     display.setTextSize(1);
     display.println("TAKING SAMPLES");
     display.println("---------------------");
-    display.println("SAMPLE " + (i + 1) + "\nOUT OF " + (samples));
+    display.println("SAMPLE " + String(i + 1) + "\nOUT OF " + String(samples));
     display.println("DO NOT TOUCH THE JOYSTICK!");
     display.display();
 
@@ -2202,7 +2146,7 @@ void joystickCalibration()
   yCalibration = yAverage;
 }
 
-void calibrateJoystickOffCenter(double offCenter, int Axis)
+double calibrateJoystickOffCenter(double offCenter, int Axis)
 {
   double calibration = 0;
   int sign = 0;
@@ -2224,7 +2168,7 @@ void calibrateJoystickOffCenter(double offCenter, int Axis)
     showErrorMessage(203, "Wrong Axis specified: " + String(Axis));
   }
 
-  if (offCenter => calibration)
+  if (offCenter >= calibration)
   {
     sign = 1;
   }
@@ -2233,7 +2177,7 @@ void calibrateJoystickOffCenter(double offCenter, int Axis)
     sign = -1;
   }
 
-  if (offCenter => 0)
+  if (offCenter >= 0)
   {
     valueSign = 1;
   }
@@ -2560,7 +2504,7 @@ double XaxisJoystickInfo()
   double xOffCenter = calculateOffCenter(xReading);
 
   // Calibrate reading if enabled by user
-  if (calibrate)
+  if (joystickjCalibrate)
   {
     xOffCenter = calibrateJoystickOffCenter(xOffCenter, 0);
   }
@@ -2585,7 +2529,7 @@ double YaxisJoystickInfo()
   double yOffCenter = calculateOffCenter(yReading);
 
   // Calibrate reading if enabled by user
-  if (calibrate)
+  if (joystickjCalibrate)
   {
     yOffCenter = calibrateJoystickOffCenter(yOffCenter, 1);
   }
@@ -3156,27 +3100,27 @@ void resetProfiles()
   {
     for (int j = 0; j < SavedAnglesBasicLength; j++)
     {
-      SavedAnglesBasic[i][j] = SavedAnglesBasicReference[j];
+      SavedAnglesBasic[i][j] = SavedAnglesBasicReference[servoType][j];
     }
     for (int j = 0; j < SavedAnglesAccurateLength; j++)
     {
-      SavedAnglesAccurate[i][j] = SavedAnglesAccurateReference[j];
+      SavedAnglesAccurate[i][j] = SavedAnglesAccurateReference[servoType][j];
     }
     for (int j = 0; j < SavedAnglesServophileLength; j++)
     {
-      SavedAnglesServophile[i][j] = SavedAnglesServophileReference[j];
+      SavedAnglesServophile[i][j] = SavedAnglesServophileReference[servoType][j];
     }
     for (int j = 0; j < SavedAnglesSuperServophileLength; j++)
     {
-      SavedAnglesSuperServophile[i][j] = SavedAnglesSuperServophileReference[j];
+      SavedAnglesSuperServophile[i][j] = SavedAnglesSuperServophileReference[servoType][j];
     }
     for (int j = 0; j < SavedAnglesMEGAServophileLength; j++)
     {
-      SavedAnglesMEGAServophile[i][j] = SavedAnglesMEGAServophileReference[j];
+      SavedAnglesMEGAServophile[i][j] = SavedAnglesMEGAServophileReference[servoType][j];
     }
     for (int j = 0; j < SavedAnglesOVERKILLServophileLength; j++)
     {
-      SavedAnglesOVERKILLServophile[i][j] = SavedAnglesOVERKILLServophileReference[j];
+      SavedAnglesOVERKILLServophile[i][j] = SavedAnglesOVERKILLServophileReference[servoType][j];
     }
   }
 
@@ -3260,7 +3204,7 @@ void servoSweep(double minAngle, double maxAngle, int timeMs)
 
   for (int i = 0; i < chunks; i++)
   {
-    double currentAngle = minAngle + i * (angleDiff / chunks)
+    double currentAngle = minAngle + i * (angleDiff / chunks);
     TestServo.write(currentAngle);
 
     delay(50);
@@ -3369,5 +3313,74 @@ void waitForClick()
 
       break;
     }
+  }
+}
+
+void updateSelectedProfile()
+{
+  int ListID = usedCalibrationList;
+  int slot = usedCalibrationListSlot;
+
+  // Check if the User wants to force Error 106
+  if (simulateError106)
+  {
+    // Force Error 106: Non-Existing Servo Profile
+    ListID = 100;
+  }
+
+  // Pick servo profile based on the selected one
+  switch (ListID)
+  {
+    case 0:
+    {
+      ListSize = SavedAnglesBasicLength;
+      pickedAngleList = &SavedAnglesBasic[slot][0]; // Call [0] to get the array address
+      referenceAngleList = &SavedAnglesBasicReference[servoType][0];
+      break;      
+    }
+
+    case 1:
+    {
+      ListSize = SavedAnglesAccurateLength;
+      pickedAngleList = &SavedAnglesAccurate[slot][0];
+      referenceAngleList = &SavedAnglesAccurateReference[servoType][0];
+      break;
+    }
+
+    case 2:
+    {
+      ListSize = SavedAnglesServophileLength;
+      pickedAngleList = &SavedAnglesServophile[slot][0];
+      referenceAngleList = &SavedAnglesServophileReference[servoType][0];
+      break;
+    }
+
+    case 3:
+    {
+      ListSize = SavedAnglesSuperServophileLength;
+      pickedAngleList = &SavedAnglesSuperServophile[slot][0];
+      referenceAngleList = &SavedAnglesSuperServophileReference[servoType][0];
+      break;
+    }
+
+    case 4:
+    {
+      ListSize = SavedAnglesMEGAServophileLength;
+      pickedAngleList = &SavedAnglesMEGAServophile[slot][0];
+      referenceAngleList = &SavedAnglesMEGAServophileReference[servoType][0];
+      break;
+    }
+
+    case 5:
+    {
+      ListSize = SavedAnglesOVERKILLServophileLength;
+      pickedAngleList = &SavedAnglesOVERKILLServophile[slot][0];
+      referenceAngleList = &SavedAnglesOVERKILLServophileReference[servoType][0];
+      break;
+    }
+
+    default:
+      showErrorMessage(106, "Non-Existing Servo Profile");
+      break;
   }
 }
