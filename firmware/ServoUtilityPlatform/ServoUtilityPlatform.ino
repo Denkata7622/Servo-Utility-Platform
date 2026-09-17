@@ -5,7 +5,7 @@
 #include <Preferences.h>
 #include <Math.h>
 
-const String version = "0.8.7";
+const String version = "0.9.1";
 
 // Define Screen Parameters
 #define SCREEN_WIDTH 128
@@ -21,10 +21,16 @@ unsigned long previousJoystickTime = 0;
 unsigned long previousClickTime = 0;
 unsigned long previousDirectionTime = 0;
 
+// The most important delay of them all
+// Makes the app feel more polished and helps evade fake "Go Back", "Select" or "Next" clicks
+// keep this low - between 200 and 400 ms
+int actionDelay = 300;
+
 int displayDelayMs = 50;
 int joystickDelayMs = 100;
 int clickDelayMs = 20;
 int selectedDelayMs = 200;
+
 
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Debugger Option (Change to enable debugging)
@@ -781,6 +787,9 @@ void callMenuOption(int contextMenu)
       // Update servoType
       servoType = selected;
 
+      // refresh picked angle list
+      updateSelectedProfile();
+
       break;
     }
 
@@ -857,27 +866,27 @@ void callMenuOption(int contextMenu)
 void callManualControl()
 {
   // Prevent accidental "Go back" reading
-  delay(300);
+  delay(actionDelay);
 
   // Open actual menu
   manualControl();
 
   // Prevent accidental return to the same option
-  delay(300);
+  delay(actionDelay);
 }
 
 void callCalibration()
 {
-  delay(300);
+  delay(actionDelay);
 
   calibrationMenu();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callServoSweep()
 {
-  delay(300);
+  delay(actionDelay);
 
   // TODO
   // Make User Profiles (SavedAngles) show what type of servo was used to record it
@@ -900,16 +909,16 @@ void callServoSweep()
     break;
   }
 
-  delay(300);
+  delay(actionDelay);
 }
 
 bool callPickCalibrationListMenu()
 {
-  delay(300);
+  delay(actionDelay);
 
   bool goback = pickCalibrationListMenu();
 
-  delay(300);
+  delay(actionDelay);
 
   if (debug == true)
   {
@@ -921,7 +930,7 @@ bool callPickCalibrationListMenu()
 
 void callPickCalibrationListSlot()
 {
-  delay(300);
+  delay(actionDelay);
 
   pickCalibrationListSlot();
 
@@ -930,105 +939,105 @@ void callPickCalibrationListSlot()
     pickCalibrationListSlotMenuDebug();
   }
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callLaserCalibration()
 {
-  delay(300);
+  delay(actionDelay);
 
   laserCalibration();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callJoystickCalibration()
 {
-  delay(300);
+  delay(actionDelay);
 
   joystickCalibration();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callProfileSelect()
 {
-  delay(300);
+  delay(actionDelay);
 
   profileSelect();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callSelectServoType()
 {
-  delay(300);
+  delay(actionDelay);
 
   selectServoTypeMenu();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callDebug()
 {
   // Prevent accidental "Go back" reading
-  delay(300);
+  delay(actionDelay);
 
   debugMenu();
 
   // Prevent accidental return to same option
-  delay(300);  
+  delay(actionDelay);  
 }
 
 void callJoystickDebug()
 {
   // Prevent accidental "Go back" reading
-  delay(300);
+  delay(actionDelay);
 
   joystickDebug();
 
   // Prevent accidental return to same option
-  delay(300);  
+  delay(actionDelay);  
 }
 
 void callJoystickCalibrationDebug()
 {
   // Prevent accidental "Go back" reading
-  delay(300);
+  delay(actionDelay);
 
   joystickCalibrationDebug();
 
   // Prevent accidental return to same option
-  delay(300);  
+  delay(actionDelay);  
 }
 
 void callErrorSimulation()
 {
   // Prevent accidental "Go back" reading
-  delay(300);
+  delay(actionDelay);
 
   errorSimulationMenu();
 
   // Prevent accidental return to same option
-  delay(300);  
+  delay(actionDelay);  
 }
 
 void callSettings()
 {
-  delay(300);
+  delay(actionDelay);
 
   settingsMenu();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 void callAbout()
 {
-  delay(300);
+  delay(actionDelay);
 
   About();
 
-  delay(300);
+  delay(actionDelay);
 }
 
 // Caclulates offCenter by giving it a floating point number from -1 to 1
@@ -1851,10 +1860,13 @@ void pickCalibrationListSlot()
   }
 }
 
+// User picks new list and slot and the profile gets updated automatically
 void profileSelect()
 { 
   pickCalibrationListMenu(); 
   pickCalibrationListSlot();
+
+  updateSelectedProfile();
 }
 
 // Uses a laser strapped to the horn of the servo to calculate servo angle using tg  
@@ -1885,7 +1897,7 @@ void laserCalibration()
   startingDistance = getLaserToWallDistance();
 
   // Wait a bit to prevent accidental clicks 
-  delay(300);
+  delay(actionDelay);
 
   // distance from laser dot to marking on the wall (in cm)
   double distance = 0;
@@ -1893,7 +1905,7 @@ void laserCalibration()
   for (int i = 0; i < ListSize; i++)
   {
     // add a small delay to not skip the warning
-    delay(300);
+    delay(actionDelay);
     
     // RESET distance
     distance = 0;
@@ -2094,7 +2106,7 @@ void joystickCalibration()
     int buttonState = digitalRead(buttonPin);
     if (!buttonState)
     {
-      delay(300);
+      delay(actionDelay);
 
       // Continue
       break;
@@ -2254,7 +2266,7 @@ void About()
 
 void showErrorMessage(int ErrorID, String errorMessage)
 {
-  delay(300);
+  delay(actionDelay);
   
   // Static part
   display.clearDisplay();
@@ -2380,7 +2392,7 @@ void prettyPrint(String Message, int x, int y, int textSize, int maxChars, int m
         if (!buttonState)
         {
           // Go to next page
-          delay(300);
+          delay(actionDelay);
           break;
         }
         
@@ -2413,7 +2425,7 @@ void prettyPrint(String Message, int x, int y, int textSize, int maxChars, int m
         int buttonState = digitalRead(buttonPin);
         if (!buttonState)
         {
-          delay(300);
+          delay(actionDelay);
           break;
         }
         
@@ -2671,20 +2683,18 @@ void settingsMenu()
     {
       previousClickTime = currentTime;
 
-
       // Read if button has been pressed (first checks for button on purpose)
       int buttonState = digitalRead(buttonPin);
       if (!buttonState)
       {
-        delay(300);
-  
         // Keep "Go Back" last so this always works
         if (selected == (settingsMenuLength - 1))
         {
           // Go Back
           return;
         }
-  
+        
+        delay(actionDelay);
   
         // temporarily disable the focus arrow
         enableFocusArrow = false;
@@ -2736,7 +2746,8 @@ void settingsMenu()
               // Update NVS Memory
               saveSettings();
     
-              delay(300);
+              // Action delay before going back the the settings menu
+              delay(actionDelay);
     
               // Go Back to the Settings Menu
               break;
@@ -3309,7 +3320,7 @@ void waitForClick()
     if (!buttonState)
     {
       // add a small delay to not skip the reading
-      delay(300);
+      delay(actionDelay);
 
       break;
     }
