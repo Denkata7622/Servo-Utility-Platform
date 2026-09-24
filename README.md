@@ -4,29 +4,28 @@ A (kinda) compact **ESP32-based tool** for setting up **servos** for your **Robo
 
 ## Overview
 
-The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for both engineers and hobbyists with its main focus aimed towards **testing**, **calibrating** and ~~**running diagnostics**~~ on servo motors - the backbone of a considerable amount of **Robotics** and **Engineering** projects.
+The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for both engineers and hobbyists with its main focus aimed towards **testing**, **calibrating** and **(coming soon)** ~~**running diagnostics**~~ on servo motors - the backbone of a considerable amount of **Robotics** and **Engineering** projects.
+
+<img src="docs/images/SUP.gif" alt="SUP assembled" width="360" height="360">
+
+## DEMO
+
+
 
 ## Features
 
-- Finding **limits** of operation
-- **Calibration** of the motors
-- **C.E.A. Laser Calibration**
-- (Planned) **Testing sweeps** from 0° to 180°
-- (Planned) **RPM** for 360° rotating servos
-- Custom saved **profiles** going as precise as per-2.8125° sample calibrations
-- (Planned - Likely impossible) **Diagnostic** option for automatically setting up a module for use
-- (Planned) Decently **portable design** using a 830-point breadboard (for now no custom enclosure or PCB has been planned)
-- **Debug Menu** for **testing features** and **error-handling**
-- **Settings Menu** for changing settings.  
-Some Options include:  
-**1\. Invert** one (or both) **Joystick axis**  
-**2\. Swap Joystick axis**  
-**3\. Debugging Option** (for developers)  
-**4\.** Multiple **Speed Multipliers**  
-**5\. Custom Delay lengths** for Different purposes  
-**6\.  Current** calibration **profile** used
-- (Planned) Make saved profiles **survive** microcontroller **RESET**
-- **Polished** and **intuitive UI!**
+- **Manual Servo Control**
+- **Servo Sweeps** tests the full range of servo movement
+- **Pulse-Width Calibration**
+- **C.E.A. Laser Calibration** - fixes servos with using a laser module
+- **Support for multiple Servo Types**, including positional **(90°, 180°)** and continuous-rotation **(360°)** servos
+- **Joystick Calibration**
+- **Persistent Calibration Profiles** with 6 save slots stored in the ESP32's non-volatile memory
+- **Configurable Controls and Settings**, including joystick axis inversion, axis swapping, speed multipliers, and delay settings
+- **Debug Menu** for testing features and error handling
+- **OLED interface** with menus, visual feedback, and animations  
+
+<img src="docs/images/SUP_MENU.webp" alt="SUP assembled">
 
 ## Hardware Used
 
@@ -35,8 +34,15 @@ Some Options include:
 - **Joystick modules** - *x1*
 - **Servo modules** *(MG90) - x1*
 - **Servo modules** *(MG90s) - x1-2*  
-- *830-point* **breadboard** - *x1*
+- *830-point* **breadboard** - *x2*
 - Jumper and Dupont **wires** - *~25 max*  
+
+<table>
+  <tr>
+    <td><img src="docs/images/HARDWARE_2.png" width="400" height="250"></td>
+    <td><img src="docs/images/HARDWARE_1.png" width="400" height="250"></td>
+  </tr>
+</table>
 
 ## Repo Structure
 
@@ -80,15 +86,18 @@ Some Options include:
 - [x] Menu system
 - [x] Calibration
 - [x] Documentation
-- [ ] Actually TEST the calibration workflow and check if it really works with a real servo
+- [x] Actually TEST the calibration workflow and check if it really works with a real servo
 - [x] Add an X-axis animation to the Settings menu when changing variables
-- [ ] Add a way to name list slots
-- [ ] Make list slots dynamically generated instead of hardcoded
-- - [ ] Add an "add/make new slot" option
-- [ ] Make an on-screen keyboard or use a library
-- [ ] Final Polish
-- [ ] Film Demo Montage
-- [ ] First release
+- [x] Add Pulse-Width Calibration
+- [x] Add Working Settings Menu
+- ~~[ ] Add a way to name list slots~~
+- ~~[ ] Make list slots dynamically generated instead of hardcoded~~
+- - ~~[ ] Add an "add/make new slot" option~~
+- ~~[ ] Make an on-screen keyboard or use a library~~
+- [x] Add "About" as a menu option
+- [x] Final Polish
+- [x] Film Demo Montage
+- [x] First release
 
 ## Current Status
 

@@ -22,8 +22,8 @@
 
 ## TODO
 
-- [] Add support for 360 deg servos - basically writing a custom new version of each function but for rotating servos because they are fundamentally different then positional servos (such as 90° and 180°) and don't integrate well into the current ecosystem.
+- [x] Add support for 360 deg servos - basically writing a custom new version of each function but for rotating servos because they are fundamentally different then positional servos (such as 90° and 180°) and don't integrate well into the current ecosystem.
 
 - [] Show which saved profile is for which servo type
 
-- [] Film the video for the v1.0 release (we are really getting closer :D).
+- [x] Film the video for the v1.0 release (we are really getting closer :D).

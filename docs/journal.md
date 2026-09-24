@@ -49,7 +49,7 @@
 
 - [x] Build the first menu
   - [x] Manual Servo Control
-  - [ ] Full 0°-180° Sweep
+  - [x] Full 0°-180° Sweep
   - [x] Change Default Servo Pin
 
 ### Session Time today
@@ -309,7 +309,6 @@ These include:
 - [x] Properly load calibration profiles from NVS
 - [x] Add profile reset functionality
 - [ ] Test the complete laser calibration workflow with a real servo
-- [ ] Implement Simple Calibration
 - [ ] Implement Pulse Width Calibration
 - [x] Implement Joystick Calibration
 - [x] Add settings X-axis animation

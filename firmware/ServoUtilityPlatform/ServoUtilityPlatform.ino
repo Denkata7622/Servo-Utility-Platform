@@ -5,7 +5,7 @@
 #include <Preferences.h>
 #include <Math.h>
 
-const String version = "0.9.1";
+const String version = "1.0.0";
 
 // Define Screen Parameters
 #define SCREEN_WIDTH 128
@@ -30,6 +30,7 @@ int displayDelayMs = 50;
 int joystickDelayMs = 100;
 int clickDelayMs = 20;
 int selectedDelayMs = 200;
+int loopDelayMs = 10; // Delay every loop (handle cautiously)
 
 
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -40,13 +41,13 @@ bool debug = false;
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Calibration Option (Change to enable joystick)
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-bool joystickjCalibrate = true;
+bool joystickCalibrate = true;
 
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 // Reset Settings/Profiles (Change to turn NVS on / off)
 // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 bool resetSavedSettings = false;
-bool resetSavedProfiles = true;
+bool resetSavedProfiles = false;
 
 // ##############
 // Hardware Pins
@@ -60,6 +61,8 @@ int buttonPin = 12;
 // Servo Variables
 // #################
 
+float savedPulseWidths[3] = {1000, 1500, 2000};
+
 // Has 3 types: 
 // [0]: 90deg positional servo
 // [1]: 180deg positional servo
@@ -72,7 +75,6 @@ double minAngle = 0; // Using double for future servo calibration function
 double maxAngle = 180; // Using double for future servo calibration function
 // Speed of angle change
 // double speed = 0; 
-int loopDelay = 10; // Delay every loop (handle cautiously)
 
 // ###################
 // Joystick Variables
@@ -101,13 +103,13 @@ double offCenterAddition = -1;
 double maxSpeed = 10;
 
 // General speed Multiplier
-double speedMultiplier = 0.1; // Change this when changing the loopDelay to keep the same ratio without fine tuning the whole speed function again
+double speedMultiplier = 0.5; // Change this when changing the loopDelay to keep the same ratio without fine tuning the whole speed function again
 
 // Finer control when selecting distances (recommended to keep below 0.5)
 double calibrationSpeedMultiplier = 0.1;
 
 // Precice control for specific cases
-double preciseSpeedMultiplier = 0.01;
+double preciseSpeedMultiplier = 0.1;
 
 // analogRead() to offCenter ratio
 double joystickScaleDivider = 2048; // Use 2048 for esp32 and 1024 for Arduino
@@ -132,11 +134,11 @@ int ScrollSpacesUntilLoop = 4;
 // ######################
 
 // Main Menu Options
-String mainMenuOptions[] = {"Manual Control", "Calibration", "Select Servo Type", "Debug", "Settings", "About", "Exit"};
+String mainMenuOptions[] = {"Manual Control", "Calibration", "Select Servo Type", "Debug", "Settings", "About"};
 int mainMenuLength = sizeof(mainMenuOptions) / sizeof(mainMenuOptions[0]);
 
 // Servo Type Options
-String servoTypeOptions[] = {"90°", "180°", "360°", "Go Back"};
+String servoTypeOptions[] = {"90 deg", "180 deg", "360 deg", "Go Back"};
 int servoTypeLength = sizeof(servoTypeOptions) / sizeof(servoTypeOptions[0]);
 
 // Calibration Menu Options
@@ -157,7 +159,7 @@ String DebugMenuOptions[] = {"Debug Joystick", "Debug Joystick Calibration", "De
 int DebugMenuLength = sizeof(DebugMenuOptions) / sizeof(DebugMenuOptions[0]);
 
 // Error Message Used for Debugging
-String DebugErrorMessage = "Non-Existing Menu Option: /nWriting at 0x000544e3 [==================>           ]/n66.2% 147456/222828 bytes... /nWriting at 0x0005d3dc [=====================>        ]  73.5% 163840/222828 bytes... /nWrote 403680 bytes (222828 compressed)/nat 0x00010000 in 4.3 seconds (749.3 kbit/s). /nVerifying written data... /nHash of data verified. /nHard resetting via RTS pin...";
+const char DebugErrorMessage[] PROGMEM  = "[Intro]/nWe lost everything/nWe had to pay the price/nYeah, we lost everything/nWe had to pay the price/n/n/n[Verse 1]/nI saw in you what life was missing/nYou lit a flame that consumed my hate/nI'm not one for reminiscing but/nI'd trade it all for your sweet embrace/n/n/n[Interlude]/nYeah, 'cause we lost everything/nWe had to pay the price/n/n/n[Verse 2]/nThere's a canvas with two faces/nOf fallen angels who loved and lost/nIt was a passion for the ages/nAnd in the end guess we paid the cost/n/n/n[Chorus]/nA thing of beauty, I know/nWill never fade away/nWhat you did to me, I know/nSaid what you had to say/nBut a thing of beauty/n/n/n[Post-Chorus]/nWill never fade away/nWill never fade away/nWill never fade away/n/n/n[Verse 3]/nI see your eyes, I know you see me/nYou're like a ghost how you're everywhere/nI am your demon never leaving/nA metal soul of rage and fear/n/n/n[Pre-Chorus]/nThat one thing that changed it all/nThat one sin that caused the fall/n/n/n[Chorus]/nA thing of beauty, I know/nWill never fade away/nWhat you did to me, I know/nSaid what you had to say/nBut a thing of beauty, I know/nWill never fade away/nAnd I'll do my duty, I know/nSomehow I'll find a way/nBut a thing of beauty/nWill never fade away/nAnd I'll do my duty/n/n/n[Post-Chorus]/nYeah, we'll never fade away/nWe'll never fade away/nWe'll never fade away/nWe'll never fade away";
 
 enum SettingType
 {
@@ -166,15 +168,17 @@ enum SettingType
   DOUBLE
 };
 
+// defaultValue uses double because void* only works as a pointer = can't store a const like 300 or FALSE
 struct Setting
 {
-  String name;
+  const char* name;
   SettingType type;
   void* value;
+  double defaultValue;
 };
 
 // Error ID List
-String ErrorTypes[] = {"Error 101: Dummy Error for Debugging", "Error 104: Non-Existing Menu", "Error 105: Non-Existing Menu Option", "Error 106: Non-Existing Servo Profile", "Error 108: Non-Existing Setting", "Error 109: Unkown Error Specified", "Error 203: Wrong Axis Specified", "Error 204: Wrong Setting Type Specified", "Go Back"};
+String ErrorTypes[] = {"Error 101: Dummy Error for Debugging", "Error 104: Non-Existing Menu", "Error 105: Non-Existing Menu Option", "Error 106: Non-Existing Servo Profile", "Error 108: Non-Existing Setting", "Error 109: Unkown Error Specified", "Error 203: Wrong Axis Specified", "Error 204: Wrong Setting Type Specified", "Error 305: Unsupported Servo Type", "Go Back"};
 int ErrorTypesLength = sizeof(ErrorTypes) / sizeof(ErrorTypes[0]);
 
 // Added this to make a function work
@@ -202,8 +206,6 @@ double* referenceAngleList = nullptr;
 
 // Distance, Picked and Reference Lists all have the same size
 int ListSize = 0;
-
-// [usedCalibrationProfile] can be found at the bottom of the variable setup (around line ~300)
 
 // ###########################
 // Basic Profile:
@@ -451,9 +453,6 @@ double SavedAnglesOVERKILLServophileReference[2][129] =
   }
 };
 
-// Use SavedAnglesMEGAServophile[0] as default cuz it is the only one with a full slot
-double* usedCalibrationProfile = SavedAnglesMEGAServophile[0];
-
 
 // ###################
 // SETTINGS
@@ -464,38 +463,94 @@ String settingsMessage = "VALUE";
 
 Setting settings[] = 
 {
-  {"xAxisInverted", BOOL, &xAxisInverted},
-  {"yAxisInverted", BOOL, &yAxisInverted},
-  {"axisSwapped", BOOL, &axisSwapped},
-  {"xDeadzone", DOUBLE, &xDeadzone},
-  {"yDeadzone", DOUBLE, &yDeadzone},
-  {"xCalibration", DOUBLE, &xCalibration},
-  {"yCalibration", DOUBLE, &yCalibration},
-  {"maxSpeed", DOUBLE, &maxSpeed},
-  {"offCenterSquaredMultiplier", DOUBLE, &offCenterSquaredMultiplier},
-  {"offCenterLinearMultiplier", DOUBLE, &offCenterLinearMultiplier},
-  {"offCenterAddition", DOUBLE, &offCenterAddition},
-  {"speedMultiplier", DOUBLE, &speedMultiplier},
-  {"calibrationSpeedMultiplier", DOUBLE, &calibrationSpeedMultiplier},
-  {"preciseSpeedMultiplier", DOUBLE, &preciseSpeedMultiplier},
-  {"servoPin", INT, &servoPin},
-  {"xPin", INT, &xPin},
-  {"yPin", INT, &yPin},
-  {"buttonPin", INT, &buttonPin},
-  {"maxOptions", INT, &maxOptions},
-  {"maxCharsPerLine", INT, &maxCharsPerLine},
-  {"prettyPrintPageDelayMs", INT, &prettyPrintPageDelayMs},
-  {"ScrollDelayMs", INT, &ScrollDelayMs},
-  {"ScrollSpacesUntilLoop", INT, &ScrollSpacesUntilLoop},
-  {"debug", BOOL, &debug},
-  {"usedCalibrationList", INT, &usedCalibrationList},
-  {"usedCalibrationListSlot", INT, &usedCalibrationListSlot}
+  // =========================
+  // Timers / Delays
+  // =========================
+  {"actionDelay",                 INT,    &actionDelay,                300},
+  {"displayDelayMs",              INT,    &displayDelayMs,             50},
+  {"joystickDelayMs",             INT,    &joystickDelayMs,            100},
+  {"clickDelayMs",                INT,    &clickDelayMs,               20},
+  {"selectedDelayMs",             INT,    &selectedDelayMs,            200},
+  {"loopDelayMs",                 INT,    &loopDelayMs,                10},
+
+  // =========================
+  // Hardware Pins
+  // =========================
+  {"servoPin",                    INT,    &servoPin,                   38},
+  {"xPin",                        INT,    &xPin,                       2},
+  {"yPin",                        INT,    &yPin,                       1},
+  {"buttonPin",                   INT,    &buttonPin,                  12},
+
+  // =========================
+  // Servo
+  // =========================
+  {"servoType",                   INT,    &servoType,                  1},
+  {"angle",                       DOUBLE, &angle,                      90},
+  {"minAngle",                    DOUBLE, &minAngle,                   0},
+  {"maxAngle",                    DOUBLE, &maxAngle,                   180},
+
+  // =========================
+  // Joystick Input
+  // =========================
+  {"xDeadzone",                   DOUBLE, &xDeadzone,                  0.15},
+  {"yDeadzone",                   DOUBLE, &yDeadzone,                  0.15},
+  {"xCalibration",                DOUBLE, &xCalibration,               0},
+  {"yCalibration",                DOUBLE, &yCalibration,               0},
+  {"joystickScaleDivider",        DOUBLE, &joystickScaleDivider,       2048},
+
+  // =========================
+  // Axis Inversion / Swapping
+  // =========================
+  {"xAxisInverted",               BOOL,   &xAxisInverted,              true},
+  {"yAxisInverted",               BOOL,   &yAxisInverted,              true},
+  {"axisSwapped",                 BOOL,   &axisSwapped,                false},
+
+  // =========================
+  // Movement / Speed
+  // =========================
+  {"maxSpeed",                    DOUBLE, &maxSpeed,                   10.0},
+  {"speedMultiplier",             DOUBLE, &speedMultiplier,            0.5},
+  {"calibrationSpeedMultiplier",  DOUBLE, &calibrationSpeedMultiplier, 0.1},
+  {"preciseSpeedMultiplier",      DOUBLE, &preciseSpeedMultiplier,     0.01},
+  {"offCenterSquaredMultiplier",  DOUBLE, &offCenterSquaredMultiplier, 8.0},
+  {"offCenterLinearMultiplier",   DOUBLE, &offCenterLinearMultiplier,  3.0},
+  {"offCenterAddition",           DOUBLE, &offCenterAddition,          -1.0},
+
+  // =========================
+  // Menu UI
+  // =========================
+  {"maxOptions",                  INT,    &maxOptions,                 8},
+  {"maxCharsPerLine",             INT,    &maxCharsPerLine,            20},
+  {"enableFocusArrow",            BOOL,   &enableFocusArrow,           true},
+  {"currentScrollPosition",       INT,    &currentScrollPosition,      0},
+  {"prettyPrintPageDelayMs",      INT,    &prettyPrintPageDelayMs,     7500},
+
+  // =========================
+  // Custom Scroll
+  // =========================
+  {"ScrollDelayMs",               INT,    &ScrollDelayMs,              200},
+  {"ScrollSpacesUntilLoop",       INT,    &ScrollSpacesUntilLoop,      4},
+
+  // =========================
+  // Debug / Calibration Options
+  // =========================
+  {"debug",                       BOOL,   &debug,                      false},
+  {"joystickCalibrate",           BOOL,   &joystickCalibrate,          true},
+  {"simulateError106",            BOOL,   &simulateError106,           false},
+
+  // =========================
+  // Servo Profiles
+  // =========================
+  {"usedCalibrationList",         INT,    &usedCalibrationList,        4},
+  {"usedCalibrationListSlot",     INT,    &usedCalibrationListSlot,    0}
 };
+
 // + 1 for the "Go Back"
 const int settingsMenuLength = sizeof(settings) / sizeof(settings[0]) + 1;
 
+// tempSettingInt is double so small changes don't get perpetually cut out upon rounding
 bool tempSettingBool = false;
-int tempSettingInt = 0;
+double tempSettingInt = 0;
 double tempSettingDouble = 0;
 
 String settingsMenuOptions[settingsMenuLength] = {""};
@@ -516,7 +571,7 @@ Servo TestServo;
 void setup() 
 {
   // fill in settingsMenuOptions
-  for (int i = 0; i < settingsMenuLength; i++)
+  for (int i = 0; i < settingsMenuLength - 1; i++)
   {
     settingsMenuOptions[i] = settings[i].name;
   }
@@ -526,8 +581,9 @@ void setup()
   savedSettings.begin("savedSettings", false);
   servoProfiles.begin("servoProfiles", false);
 
-  // Load User Settings from Memory
+  // Load User Settings and Profiles from Memory
   loadSettings();
+  loadProfiles();
 
   // Reset Settings (if enabled by user)
   if (resetSavedSettings)
@@ -541,6 +597,9 @@ void setup()
     resetProfiles();
   }
 
+  // Update Profile from settings
+  updateSelectedProfile();
+
   Serial.begin(115200);
 
   // Give buttonPin an internal pullup resistor
@@ -551,8 +610,6 @@ void setup()
 
   // Load Boot Screen
   startupScreen();
-
-
 
   // ALWAYS KEEP THIS AT THE BOTTOM
   TestServo.attach(servoPin);
@@ -751,6 +808,7 @@ void callMenuOption(int contextMenu)
           break;
         
         case 1:
+          callPulseWidthCalibration()
           break;
 
         case 2:
@@ -888,9 +946,6 @@ void callServoSweep()
 {
   delay(actionDelay);
 
-  // TODO
-  // Make User Profiles (SavedAngles) show what type of servo was used to record it
-
   switch (servoType)
   {
   case 0:
@@ -902,11 +957,29 @@ void callServoSweep()
     break;
   
   case 2:
-    servoSweepRotating();
+    servoSweepRotating(5000);
     break;
 
   default:
     break;
+  }
+
+  delay(actionDelay);
+}
+
+void callPulseWidthCalibration()
+{
+  delay(actionDelay);
+
+  switch (servoType)
+  {
+    case 2:
+      pulseWidthCalibration();
+      break;
+  
+    default:
+      showErrorMessage(305, "Unsupported Servo Type");
+      break;
   }
 
   delay(actionDelay);
@@ -1471,6 +1544,9 @@ double digitalAngleToCalibrated(double angle, int ListSize, double* calibratedAn
       return calibratedAngle;
     }
   }
+
+  // Return angle if there is a problem with the range
+  return angle;
 }
 
 // Check if angle exceeds minAngle or maxAngle
@@ -1492,11 +1568,9 @@ double fixServoAngle(double angle)
 // Uses calibration profile's first and last index for the new Bound angle
 void updateMinMaxAngles()
 {
-  minAngle = usedCalibrationProfile[0];
+  minAngle = pickedAngleList[0];
 
-  int length = sizeof(*usedCalibrationProfile) / sizeof(usedCalibrationProfile[0]);
-
-  maxAngle = usedCalibrationProfile[length - 1];
+  maxAngle = pickedAngleList[ListSize - 1];
 
   if (debug == true)
   {
@@ -1517,7 +1591,8 @@ void updateMinMaxAngles()
 
     display.display();
 
-    delay(2000);
+    skipableDelay(2000);
+    delay(actionDelay);
   }
 }
 
@@ -1544,9 +1619,9 @@ void manualControl()
   {
     unsigned long currentTime = millis();
 
-    if (currentTime - previousTime >= loopDelay)
+    if (currentTime - previousJoystickTime >= joystickDelayMs)
     {
-      previousTime = currentTime;
+      previousJoystickTime = currentTime;
 
       xOffCenter = XaxisJoystickInfo();
       angleChange = offCenterToSpeed(xOffCenter);
@@ -1699,7 +1774,8 @@ void pickCalibrationListMenuDebug()
   display.println(Message);
   display.display();
 
-  skipableDelay(1000);
+  delay(actionDelay);
+  skipableDelay(1000 - actionDelay);
 }
 
 void pickCalibrationListSlotMenuDebug()
@@ -1714,7 +1790,8 @@ void pickCalibrationListSlotMenuDebug()
   display.println(Message);
   display.display();
 
-  skipableDelay(1000);
+  delay(actionDelay);
+  skipableDelay(1000 - actionDelay);
 }
 
 bool pickCalibrationListMenu()
@@ -1863,8 +1940,11 @@ void pickCalibrationListSlot()
 // User picks new list and slot and the profile gets updated automatically
 void profileSelect()
 { 
-  pickCalibrationListMenu(); 
+  pickCalibrationListMenu();
+  delay(actionDelay);
+
   pickCalibrationListSlot();
+  delay(actionDelay);
 
   updateSelectedProfile();
 }
@@ -1975,10 +2055,10 @@ void laserCalibration()
 
   // Make a String for displaying Distances
   String distancesMessage = String("startingDistance: ") + String(startingDistance);
-  distancesMessage += "/nDistances: ";
+  distancesMessage += "/nDistances:/n";
 
   // Make a String for displaying Angles
-  String anglesMessage = String("Angles Saved: ");
+  String anglesMessage = String("Angles Saved:/n");
 
   // Use the Distances[] array to produce an Angles[] array
   for (int i = 0; i < ListSize; i++)
@@ -2009,6 +2089,9 @@ void laserCalibration()
     anglesMessage += String(pickedAngleList[i]); 
     anglesMessage += String("/n");
   }
+
+  // Save Profiles
+  saveProfiles();
 
   // Print Message in pages
   prettyPrint(distancesMessage, 5, 0, 1, 20, 7);
@@ -2118,8 +2201,8 @@ void joystickCalibration()
   display.setTextSize(1);
   display.println("STARTING CALIBRATION");
   display.println("---------------------");
-  display.println("PLEASE WAIT...");
-  display.println("DO NOT TOUCH THE JOYSTICK!");
+  display.println("PLEASE WAIT...\n");
+  display.println("DO NOT TOUCH THE \nJOYSTICK!");
   display.display();
 
   delay(2500);
@@ -2145,7 +2228,7 @@ void joystickCalibration()
     display.println("DO NOT TOUCH THE JOYSTICK!");
     display.display();
 
-    delay(10);
+    delay(5);
   }
 
   double xAverage = XsampleSum / samples;
@@ -2259,9 +2342,20 @@ double calibrateJoystickOffCenter(double offCenter, int Axis)
 
 void About()
 {
-  // TODO
+  String aboutMessage = "The Servo Utility /nPlatform is an open-source project made entirely by me - Denislav Tsenov (a.k.a. Kacenta). It is under the MIT Licence which means it is 100% free to use//modify//sell the contents of this /nproject at any given time ;D. /n/nAbout me.../n/nI am a 17-year-old student (as of 2026) living in /nBulgaria./nI love doing lots of things, some of which:/n - Playing on my Electric Guitar/n - Writing Songs/n - Playing Video Games/n - Training/n - Programming/n - and more.../n/nI have been programming for quite some time now, but mainly using AI and wanted to do something more simple but /nentirely written by my 2 hands /n(or 10 fingers, idk XD)./nSo I am proud to /nannounce.../nMy first truly /nAI-FREE Project./n";
+  
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
 
-  String aboutMessage = "The Servo Utility Platform (a.k.a S.U.P.) /nis an open-source project made entirely /nby me - Denislav Tsenov (a.k.a. Kacenta). It is under the MIT Licence which means it is 100% free to use/modify/sell the contents of this project at any given time ;D. /nAbout me.../n/nI am a 17-year-old student (as of 2026) living in Bulgaria./nI love doing lots of things, some of which:/n - Playing on my Electric Guitar/n - Writing Songs/n - Playing Video Games/n - Training/n - Programming/n - and more.../n/nI have been programming for quite some time now, but mainly using AI and wanted to do something more simple but entirely written by my 2 hands /n(or 10 fingers, idk XD)./nSo I am proud to announce.../nMy first truly AI-FREE Project./n";
+  display.setCursor(15, 0);
+  display.println("S. U. P.");
+
+  display.setCursor(15, 16);
+  display.println("CREDITS");
+  display.display();
+
+  prettyPrint(aboutMessage, 6, 32, 1, 19, 4);
 }
 
 void showErrorMessage(int ErrorID, String errorMessage)
@@ -2292,7 +2386,7 @@ void prettyPrint(String Message, int x, int y, int textSize, int maxChars, int m
   display.setTextSize(textSize);
   display.setCursor(x,y);
 
-  String messageFragments[100] = {};
+  String messageFragments[200] = {};
 
   int charCounter = 0;
   int lineCounter = 0;
@@ -2516,7 +2610,7 @@ double XaxisJoystickInfo()
   double xOffCenter = calculateOffCenter(xReading);
 
   // Calibrate reading if enabled by user
-  if (joystickjCalibrate)
+  if (joystickCalibrate)
   {
     xOffCenter = calibrateJoystickOffCenter(xOffCenter, 0);
   }
@@ -2541,7 +2635,7 @@ double YaxisJoystickInfo()
   double yOffCenter = calculateOffCenter(yReading);
 
   // Calibrate reading if enabled by user
-  if (joystickjCalibrate)
+  if (joystickCalibrate)
   {
     yOffCenter = calibrateJoystickOffCenter(yOffCenter, 1);
   }
@@ -2688,13 +2782,21 @@ void settingsMenu()
       if (!buttonState)
       {
         // Keep "Go Back" last so this always works
-        if (selected == (settingsMenuLength - 1))
+        if (selected == settingsMenuLength - 1)
         {
           // Go Back
           return;
         }
         
         delay(actionDelay);
+
+        // Actually get the value of the setting so u don't start from 0
+        if (settings[selected].type == BOOL)
+          tempSettingBool = *(bool*)settings[selected].value;
+        else if (settings[selected].type == INT)
+          tempSettingInt = *(int*)settings[selected].value;
+        else if (settings[selected].type == DOUBLE)
+          tempSettingDouble = *(double*)settings[selected].value;
   
         // temporarily disable the focus arrow
         enableFocusArrow = false;
@@ -2753,7 +2855,10 @@ void settingsMenu()
               break;
             }
           }
+
+          yield();
         }
+        
         // re-enable focus arrow after breaking
         enableFocusArrow = true;
       }
@@ -2767,6 +2872,8 @@ void settingsMenu()
       // Update Y based on yDirection
       dirUpdateYselected(yDirection, settingsMenuLength);
     }
+
+    yield();
   }
 }
 
@@ -2924,46 +3031,32 @@ void simulateError()
       break;
 
     case 4:
-      break;
-
-    case 5:
       // Force Error 108: Non-Existing Setting
       selected = 100;
       updateSetting(0);
       break;
 
-    case 6:
+    case 5:
       // Force Error 109: Unkown Error Specified
       selected = 100;
       simulateError();
       break;
-      
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-    case 15:
-    case 16:
-    case 17:
-    case 18:
-    case 19:
-    case 20:
-    case 21:
+
+    case 6:
       // Force Error 203: Wrong Axis Specified
       offCenterToDirection(0, 3);
       break;
-    
-    case 22: 
+
+    case 7: 
       // Force Error 204: Wrong Setting Type Specified
       // currentSettingType = String("IRVING FORCE - Corporate Killer");
       updateXvalue();
       break;
-      
-    case 23:
+
+    case 8:
+      // Force Error 305: Unsupported Servo Type
+      servoType = -1;
+      pulseWidthCalibration();
       break;
 
     default:
@@ -2974,102 +3067,118 @@ void simulateError()
 
 void saveSettings()
 {
-  savedSettings.putInt("servoPin", servoPin);
-  savedSettings.putInt("xPin", xPin);
-  savedSettings.putInt("yPin", yPin);
-  savedSettings.putInt("buttonPin", buttonPin);
-  savedSettings.putBool("xAxisInverted", xAxisInverted);
-  savedSettings.putBool("yAxisInverted", yAxisInverted);
-  savedSettings.putBool("axisSwapped", axisSwapped);
-  savedSettings.putDouble("maxSpeed", maxSpeed);
-  savedSettings.putDouble("speedMultiplier", speedMultiplier);
-  savedSettings.putDouble("calibrationSpeedMultiplier", calibrationSpeedMultiplier);
-  savedSettings.putDouble("preciseSpeedMultiplier", preciseSpeedMultiplier);
-  savedSettings.putDouble("offCenterSquaredMultiplier", offCenterSquaredMultiplier);
-  savedSettings.putDouble("offCenterLinearMultiplier", offCenterLinearMultiplier);
-  savedSettings.putDouble("offCenterAddition", offCenterAddition);
-  savedSettings.putBool("debug", debug);
-  savedSettings.putInt("maxOptions", maxOptions);
-  savedSettings.putInt("maxCharsPerLine", maxCharsPerLine);
-  savedSettings.putInt("currentScrollPosition", currentScrollPosition);
-  savedSettings.putInt("prettyPrintPageDelayMs", prettyPrintPageDelayMs);
-  savedSettings.putInt("loopDelay", loopDelay);
-  savedSettings.putInt("ScrollDelayMs", ScrollDelayMs);
-  savedSettings.putInt("ScrollSpacesUntilLoop", ScrollSpacesUntilLoop);
-  savedSettings.putInt("usedCalibrationList", usedCalibrationList);
-  savedSettings.putInt("usedCalibrationListSlot", usedCalibrationListSlot);
-  savedSettings.putDouble("xDeadzone", xDeadzone);
-  savedSettings.putDouble("yDeadzone", yDeadzone);
-  savedSettings.putDouble("xCalibration", xCalibration);
-  savedSettings.putDouble("yCalibration", yCalibration);
+  for (int i = 0; i < settingsMenuLength - 1; i++)
+  {
+    Setting currentSetting = settings[i];
+
+    switch (currentSetting.type)
+    {
+    case BOOL:
+      savedSettings.putBool(currentSetting.name, *(bool*)currentSetting.value);
+      break;
+
+    case INT:
+      savedSettings.putInt(currentSetting.name, *(int*)currentSetting.value);
+      break;
+
+    case DOUBLE:
+      savedSettings.putDouble(currentSetting.name, *(double*)currentSetting.value);
+      break;
+    
+    default:
+      showErrorMessage(204, "Wrong Setting Type specified: " + String(currentSetting.type));
+      break;
+    }
+  }
 
   reconfigureHardware();
 }
 
 void loadSettings()
 {
-  servoPin = savedSettings.getInt("servoPin", 38);
-  xPin = savedSettings.getInt("xPin", 2);
-  yPin = savedSettings.getInt("yPin", 1);
-  buttonPin = savedSettings.getInt("buttonPin", 12);
-  xAxisInverted = savedSettings.getBool("xAxisInverted", true);
-  yAxisInverted = savedSettings.getBool("yAxisInverted", true);
-  axisSwapped = savedSettings.getBool("axisSwapped", false);
-  maxSpeed = savedSettings.getDouble("maxSpeed", 10.0);
-  speedMultiplier = savedSettings.getDouble("speedMultiplier", 0.1);
-  calibrationSpeedMultiplier = savedSettings.getDouble("calibrationSpeedMultiplier", 0.1);
-  preciseSpeedMultiplier = savedSettings.getDouble("preciseSpeedMultiplier", 0.01);
-  offCenterSquaredMultiplier = savedSettings.getDouble("offCenterSquaredMultiplier", 8);
-  offCenterLinearMultiplier = savedSettings.getDouble("offCenterLinearMultiplier", 3);
-  offCenterAddition = savedSettings.getDouble("offCenterAddition", -1);
-  debug = savedSettings.getBool("debug", true);
-  maxOptions = savedSettings.getInt("maxOptions", 8);
-  maxCharsPerLine = savedSettings.getInt("maxCharsPerLine", 20);
-  currentScrollPosition = savedSettings.getInt("currentScrollPosition", 0);
-  prettyPrintPageDelayMs = savedSettings.getInt("prettyPrintPageDelayMs", 7500);
-  loopDelay = savedSettings.getInt("loopDelay", 10);
-  ScrollDelayMs = savedSettings.getInt("ScrollDelayMs", 200);
-  ScrollSpacesUntilLoop = savedSettings.getInt("ScrollSpacesUntilLoop", 4);
-  usedCalibrationList = savedSettings.getInt("usedCalibrationList", 0);
-  usedCalibrationListSlot = savedSettings.getInt("usedCalibrationListSlot", 0);
-  xDeadzone = savedSettings.getDouble("xDeadzone", 0.15);
-  yDeadzone = savedSettings.getDouble("yDeadzone", 0.15);
-  xCalibration = savedSettings.getDouble("xCalibration", 0);
-  yCalibration = savedSettings.getDouble("yCalibration", 0);
+  for (int i = 0; i < settingsMenuLength - 1; i++)
+  {
+    Setting currentSetting = settings[i];
+
+    switch (currentSetting.type)
+    {
+    case BOOL:
+      *(bool*)currentSetting.value = savedSettings.getBool(currentSetting.name, (currentSetting.defaultValue != 0));
+      break;
+
+    case INT:
+      *(int*)currentSetting.value = savedSettings.getInt(currentSetting.name, (int)currentSetting.defaultValue);
+      break;
+
+    case DOUBLE:
+      *(double*)currentSetting.value = savedSettings.getDouble(currentSetting.name, currentSetting.defaultValue);
+      break;
+    
+    default:
+      showErrorMessage(204, "Wrong Setting Type specified: " + String(currentSetting.type));
+      break;
+    }
+  }
 
   reconfigureHardware();
 }
 
 void resetSettings()
 {
-  servoPin = 38;
-  xPin = 2;
-  yPin = 1;
-  buttonPin = 12;
-  xAxisInverted = true;
-  yAxisInverted = true;
-  axisSwapped = false;
-  maxSpeed = 10.0;
-  speedMultiplier = 0.1;
-  calibrationSpeedMultiplier = 0.1;
-  preciseSpeedMultiplier = 0.01;
-  offCenterSquaredMultiplier = 8;
-  offCenterLinearMultiplier = 3;
-  offCenterAddition = -1;
-  debug = true;
-  maxOptions = 8;
-  maxCharsPerLine = 20;
-  currentScrollPosition = 0;
-  prettyPrintPageDelayMs = 7500;
-  loopDelay = 10;
-  ScrollDelayMs = 200;
-  ScrollSpacesUntilLoop = 4;
-  usedCalibrationList = 4;
-  usedCalibrationListSlot = 0;
-  xDeadzone = 0.15;
-  yDeadzone = 0.15;
-  xCalibration = 0;
-  yCalibration = 0;
+  for (int i = 0; i < settingsMenuLength - 1; i++)
+  {
+    Setting currentSetting = settings[i];
+
+    switch (currentSetting.type)
+    {
+    case BOOL:
+      *(bool*)currentSetting.value = (currentSetting.defaultValue != 0);
+      break;
+
+    case INT:
+      *(int*)currentSetting.value = (int)currentSetting.defaultValue;
+      break;
+
+    case DOUBLE:
+      *(double*)currentSetting.value = currentSetting.defaultValue;
+      break;
+    
+    default:
+      showErrorMessage(204, "Wrong Setting Type specified: " + String(currentSetting.type));
+      break;
+    }
+  }
+  
+  // TODO: CHECK AND REMOVE THIS IF IT WORKS WELL
+  
+  // servoPin = 38;
+  // xPin = 2;
+  // yPin = 1;
+  // buttonPin = 12;
+  // xAxisInverted = true;
+  // yAxisInverted = true;
+  // axisSwapped = false;
+  // maxSpeed = 10.0;
+  // speedMultiplier = 0.5;
+  // calibrationSpeedMultiplier = 0.1;
+  // preciseSpeedMultiplier = 0.01;
+  // offCenterSquaredMultiplier = 8;
+  // offCenterLinearMultiplier = 3;
+  // offCenterAddition = -1;
+  // debug = true;
+  // maxOptions = 8;
+  // maxCharsPerLine = 20;
+  // currentScrollPosition = 0;
+  // prettyPrintPageDelayMs = 7500;
+  // loopDelayMs = 10;
+  // ScrollDelayMs = 200;
+  // ScrollSpacesUntilLoop = 4;
+  // usedCalibrationList = 4;
+  // usedCalibrationListSlot = 0;
+  // xDeadzone = 0.15;
+  // yDeadzone = 0.15;
+  // xCalibration = 0;
+  // yCalibration = 0;
 
   reconfigureHardware();
 }
@@ -3220,15 +3329,28 @@ void servoSweep(double minAngle, double maxAngle, int timeMs)
 
     delay(50);
   }
+
+  // Go back to start in the end
+  TestServo.write(minAngle);
 }
 
-// TODO
-void servoSweepRotating()
+void servoSweepRotating(int timeMs)
 { 
+  int chunks = timeMs / 50 / 2;
 
+  for (int i = 0; i < chunks; i++)
+  {
+    TestServo.writeMicroseconds(savedPulseWidths[2]);
+    delay(50);
+  }
+
+  for (int i = 0; i < chunks; i++)
+  {
+    TestServo.writeMicroseconds(savedPulseWidths[0]);
+    delay(50);
+  }
 }
 
-// TODO
 void selectServoTypeMenu()
 {
   // Reset timers
@@ -3284,6 +3406,8 @@ void selectServoTypeMenu()
           return;
         }
 
+        delay(actionDelay);
+
         // Call to update servoType
         callMenuOption(2);
         
@@ -3291,10 +3415,13 @@ void selectServoTypeMenu()
         display.setCursor(0,0);
         display.setTextSize(1);
         
-        display.println("servoType updated to " + String(servoTypeAngles[servoType]) + " degrees");
+        display.println("SERVO TYPE MENU");
+        display.println("---------------------");
+        display.println("SERVOTYPE UPDATED: ");
+        display.println(String(servoTypeAngles[servoType]) + " DEG");
         display.display();
 
-        delay(2500);
+        delay(2500 - actionDelay);
 
         return;
       }
@@ -3323,6 +3450,97 @@ void waitForClick()
       delay(actionDelay);
 
       break;
+    }
+  }
+}
+
+void pulseWidthCalibration()
+{
+  // reset previous timers
+  resetTimers();
+
+  // update Min and Max Angles based on profile preferences
+  updateMinMaxAngles();
+
+  double xOffCenter = 0;
+  double speed = 0;
+  float pulseWidths[] = {1000, 1500, 2000};
+
+  String showPulseWidth = "";
+  String showCurrentSpeed = "";
+
+  int buttonState = 0;
+
+  // Repeat 3 times - one for middle, 1 for min and one for max Pulse Width
+  for (int i = 0; i < 3; i++)
+  {
+    // Immitate a new loop() function
+    while (true)
+    {
+      unsigned long currentTime = millis();
+
+      if (currentTime - previousJoystickTime >= joystickDelayMs)
+      {
+        previousJoystickTime = currentTime;
+
+        xOffCenter = XaxisJoystickInfo();
+        speed = offCenterToSpeed(xOffCenter);
+        pulseWidths[i] += speed * speedMultiplier;
+        
+        TestServo.writeMicroseconds(pulseWidths[i]);
+      }
+
+      if (currentTime - previousDisplayTime >= displayDelayMs)
+      {
+        previousDisplayTime = currentTime;
+
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.setTextSize(1);
+
+        switch (i)
+        {
+          case 0:
+            showPulseWidth = String("Center PulseWidth: ") + pulseWidths[i];
+            break;
+          case 1:
+            showPulseWidth = String("Minimal PulseWidth: ") + pulseWidths[i];
+            break;
+          case 2:
+            showPulseWidth = String("Maximum PulseWidth: ") + pulseWidths[i];
+            break;
+      
+          default:
+          break;
+        }
+
+        showPulseWidth = String("Current PulseWidth: ") + pulseWidths[i];
+        showCurrentSpeed = String("Current Speed: ") + speed;
+
+        display.println(showPulseWidth);
+        display.println(showCurrentSpeed);
+
+        display.setCursor(0,32);
+        display.println("CLICK TO SAVE");
+
+        display.display();
+      }
+
+      // Check for click
+      if (currentTime - previousClickTime >= clickDelayMs)
+      {
+        previousClickTime = currentTime;
+        
+        buttonState = digitalRead(buttonPin);
+        if (!buttonState)
+        {
+          // Save Pulse width
+          savedPulseWidths[i] = pulseWidths[i]; 
+          
+          // Go back
+          break;
+        }
+      }
     }
   }
 }
