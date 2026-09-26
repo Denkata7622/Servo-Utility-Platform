@@ -39,8 +39,8 @@ The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for bot
 
 <table>
   <tr>
-    <td><img src="docs/images/HARDWARE_2.png" width="400" height="250"></td>
-    <td><img src="docs/images/HARDWARE_1.png" width="400" height="250"></td>
+    <td><img src="docs/images/HARDWARE_2.png" width="400" height="350"></td>
+    <td><img src="docs/images/HARDWARE_1.png" width="400" height="350"></td>
   </tr>
 </table>
 
