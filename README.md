@@ -10,7 +10,7 @@ The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for bot
 
 ## DEMO
 
-
+[**GO HERE TO SEE VIDEO**](https://www.youtube.com/watch?v=IzWqsmjGq4U)
 
 ## Features
 
@@ -101,7 +101,8 @@ The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for bot
 
 ## Current Status
 
-First release will be **coming soon**!
+**v1.0 has been released!**  
+waiting for project review :D
 
 ## Licence
 
