@@ -2148,27 +2148,44 @@ double getLaserToWallDistance()
 
   while (true)
   {
-    unsigned long currentTIme = millis();
+    unsigned long currentTime = millis();
 
-    // Read joystick for speed
-    double yOffCenter = YaxisJoystickInfo();
-    double speed = offCenterToSpeed(yOffCenter); 
-    distance += (speed * speedMultiplier * calibrationSpeedMultiplier);
-
-    // Fix distance
-    if (distance < 0)
+    if (currentTime - previousJoystickTime >= joystickDelayMs)
     {
-      distance = 0;
+      currentTime = previousJoystickTime;
+
+      // Read joystick for speed
+      double yOffCenter = YaxisJoystickInfo();
+      double speed = offCenterToSpeed(yOffCenter); 
+      distance += (speed * speedMultiplier * calibrationSpeedMultiplier);
+  
+      // Fix distance
+      if (distance < 0)
+      {
+        distance = 0;
+      }
     }
 
-    // Output Message
-    displayDistanceAndSpeedResult(distance, speed, String("Input wallDistance"));
-    
-    int buttonState = digitalRead(buttonPin);
-    if (!buttonState)
+
+    if (currentTime - previousDisplayTime >= displayDelayMs)
     {
-      // Save Distance
-      return distance;
+      currentTime = previousDisplayTime;
+      
+      // Output Message
+      displayDistanceAndSpeedResult(distance, speed, String("Input wallDistance"));
+    }
+
+    
+    if (currentTime - previousClickTime >= clickDelayMs)
+    {
+      currentTime = previousClickTime;
+      
+      int buttonState = digitalRead(buttonPin);
+      if (!buttonState)
+      {
+        // Save Distance
+        return distance;
+      }
     }
   }
 }
