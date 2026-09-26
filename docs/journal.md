@@ -308,27 +308,27 @@ These include:
 - [x] Properly save calibration profiles to NVS
 - [x] Properly load calibration profiles from NVS
 - [x] Add profile reset functionality
-- [ ] Test the complete laser calibration workflow with a real servo
-- [ ] Implement Pulse Width Calibration
+- [x] Test the complete laser calibration workflow with a real servo
+- [x] Implement Pulse Width Calibration
 - [x] Implement Joystick Calibration
 - [x] Add settings X-axis animation
 - [ ] Add names for calibration slots
 - [ ] Make calibration slots dynamically generated
 - [ ] Add an option to create new slots
 - [ ] Add an on-screen keyboard or suitable library
-- [ ] Finish the About section
+- [x] Finish the About section
 - [ ] Finish remaining Debug menu functions
 - [x] Clean up and polish the settings system
-- [ ] Finish the persistent servo-profile system
+- [x] Finish the persistent servo-profile system
 - [ ] Test calibration data across multiple servos
 
 ### Notes
 
 The project has gone from "servo + joystick prototype" to something starting to resemble an actual standalone servo testing tool.
 
-The calibration system especially got huge. There are now 6 calibration methods with 6 slots each, ranging from 5 measurements per slot to 129.
+The calibration system got huge. There are now 6 calibration methods with 6 slots each, ranging from 5 measurements per slot to 129.
 
-Also, I somehow ended up writing my own tiny text rendering system for a 128x64 OLED. :D
+Also, I somehow ended up writing my own tiny text rendering system for the 128x64 OLED. :D
 
 ## 15th September 2026 - Major Improvements
 
@@ -346,3 +346,27 @@ Also, I somehow ended up writing my own tiny text rendering system for a 128x64 
 ### Notes
 
 Did lots of things but I am still wondering whether i should continue adding functions or finally ship the v1.0.
+
+## 15th - 26th September 2026 - First Release
+
+### I finally did it! **Version 1.0.0 is finished** and ready to ship! **Check out the video in the README.md!**
+
+### Achieved in that time
+
+- **Finished the Demo for the v1.0.0 release!**
+- Added Pulse-Width calibration
+- Added Servo Sweeep
+- **Added support for both 90° and 360° servos** (initially it worked only with 180° ones) - I basically rewrote all the calibration logic for this to work
+- Added Joystick Calibration
+- Changed all delay() calls with millis() equivalents (where needed - like 90% of the cases)
+- Rebuild lots of things (the Settings system, function calls, ect.) and made them wayy easier to manage. I'm really proud with that one.
+- **Had a lot of fun <3**
+
+### Next up
+
+- [ ] Show which saved profile is for which servo type
+- [ ] Finish remaining Debug menu functions
+- [ ] Export servo profiles through the ESP32-S3's second USB port
+- [ ] Servo diagnostics (I'll have to open up the servo)
+- [ ] Custom PCB
+- [ ] Custom 3D Case
