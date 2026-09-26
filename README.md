@@ -6,7 +6,9 @@ A (kinda) compact **ESP32-based tool** for setting up **servos** for your **Robo
 
 The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for both engineers and hobbyists with its main focus aimed towards **testing**, **calibrating** and **(coming soon)** ~~**running diagnostics**~~ on servo motors - the backbone of a considerable amount of **Robotics** and **Engineering** projects.
 
-<img src="docs/images/SUP.gif" alt="SUP assembled" width="360" height="360">
+<p align="center">
+  <img src="docs/images/SUP.gif" alt="SUP assembled" width="360" height="360">
+</p>
 
 ## DEMO
 
@@ -39,8 +41,8 @@ The Servo-Utility-Platform (a.k.a **SUP**) **serv(o)s** as a useful tool for bot
 
 <table>
   <tr>
-    <td><img src="docs/images/HARDWARE_2.png" width="400" height="250"></td>
-    <td><img src="docs/images/HARDWARE_1.png" width="400" height="250"></td>
+    <td><img src="docs/images/HARDWARE_2.png" width="500" height="450"></td>
+    <td><img src="docs/images/HARDWARE_1.png" width="500" height="450"></td>
   </tr>
 </table>
 
